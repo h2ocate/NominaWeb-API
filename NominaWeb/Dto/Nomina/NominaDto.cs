@@ -7,6 +7,7 @@ namespace NominaWeb.Dto.Nomina
         public int IDNomina { get; set; }
         public DateTime FechaPago { get; set; }
         public decimal TotalPagoGrupo { get; set; }
+        public decimal TotalBonoGrupos { get; set; }
         public decimal TotalDeduccionesGrupo { get; set; }
         public List<EmpleadoDetalleDto> EmpleadosDetalles { get; set; }
 
@@ -18,6 +19,9 @@ namespace NominaWeb.Dto.Nomina
         public string Nombre { get; set; }
         public decimal SalarioBase { get; set; }
         public decimal Deducciones { get; set; }
+        public decimal AFP { get; set; } // Nuevo campo
+        public decimal ARS { get; set; } // Nuevo campo
+        public decimal ISR { get; set; } // Nuevo campo
         public decimal Bonos { get; set; }
         public decimal TotalPago { get; set; }
     }

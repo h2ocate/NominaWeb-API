@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace NominaWeb.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialCreate : Migration
+    public partial class NuevaConsulta : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -71,7 +71,8 @@ namespace NominaWeb.Migrations
                 {
                     IDNomina = table.Column<int>(type: "int", nullable: false),
                     IDEmpleado = table.Column<int>(type: "int", nullable: false),
-                    Id = table.Column<int>(type: "int", nullable: false),
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
                     SalarioBase = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
                     Deducciones = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
                     Bonos = table.Column<decimal>(type: "decimal(18,2)", nullable: false),

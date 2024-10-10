@@ -19,93 +19,95 @@ namespace NominaWeb.Services
             _mapper = mapper;
         }
 
-        public async Task<NominaDto> AddNominaAsync(NominaCreateDto nominaDto)
-        {
-            try
+            public async Task<NominaDto> AddNominaAsync(NominaCreateDto nominaDto)
             {
-                // Primero crear la nómina con los datos correctos
-                var nomina = new Nominas
+                try
                 {
-                    FechaPago = nominaDto.FechaPago,
-                    Deducciones = nominaDto.DeduccionesExtras, // Asigna las deducciones extras
-                    TotalPago = 0, // Inicializa el total en 0 para sumar luego
-                    NominaEmpleados = new List<NominaEmpleado>() // Inicializa la lista vacía
-                };
-
-                // Inicializar totales
-                decimal totalDeduccionesGrupo = 0;
-                decimal totalBonosGrupo = 0;
-
-                // Calcular el total a pagar, deducciones y otros detalles para cada empleado
-                foreach (var empleadoBono in nominaDto.IDEmpleados)
-                {
-                    var empleado = await _context.Empleados.FindAsync(empleadoBono.IDEmpleado);
-                    if (empleado == null)
+                    // Primero crear la nómina con los datos correctos
+                    var nomina = new Nominas
                     {
-                        throw new Exception($"Empleado con ID {empleadoBono.IDEmpleado} no encontrado.");
-                    }
-
-                    var salarioBase = empleado.Salario; // Toma el salario del empleado
-                    decimal deducciones = CalculateDeductions(salarioBase, nominaDto.DeduccionesExtras);
-                    totalDeduccionesGrupo += deducciones; // Acumula las deducciones
-
-                    var totalPagoEmpleado = salarioBase + empleadoBono.Bono - deducciones;
-
-                    // Crear la entrada en la tabla intermedia NominaEmpleado
-                    var nominaEmpleado = new NominaEmpleado
-                    {
-                        IDEmpleado = empleadoBono.IDEmpleado,
-                        IDNomina = nomina.IDNomina, // Esto se asignará automáticamente al guardar la nómina
-                        SalarioBase = salarioBase,
-                        Deducciones = deducciones,
-                        Bonos = empleadoBono.Bono,
-                        TotalPago = totalPagoEmpleado // Calcula el total a pagar por empleado
+                        FechaPago = nominaDto.FechaPago,
+                        Deducciones = nominaDto.DeduccionesExtras, // Asigna las deducciones extras
+                        TotalPago = 0, // Inicializa el total en 0 para sumar luego
+                        Bonos = 0,
+                        NominaEmpleados = new List<NominaEmpleado>() // Inicializa la lista vacía
                     };
 
-                    // Agregar la relación del empleado a la nómina
-                    nomina.NominaEmpleados.Add(nominaEmpleado);
+                    // Inicializar totales
+                    decimal totalDeduccionesGrupo = 0;
+                    decimal totalBonosGrupo = 0;
 
-                    // Acumular el total a pagar de la nómina
-                    nomina.TotalPago += totalPagoEmpleado;
-                    totalBonosGrupo += empleadoBono.Bono; // Acumula los bonos
-                }
+                    // Calcular el total a pagar, deducciones y otros detalles para cada empleado
+                    foreach (var empleadoBono in nominaDto.IDEmpleados)
+                    {
+                        var empleado = await _context.Empleados.FindAsync(empleadoBono.IDEmpleado);
+                        if (empleado == null)
+                        {
+                            throw new Exception($"Empleado con ID {empleadoBono.IDEmpleado} no encontrado.");
+                        }
+
+                        var salarioBase = empleado.Salario; // Toma el salario del empleado
+                        decimal deducciones = CalculateDeductions(salarioBase, nominaDto.DeduccionesExtras);
+                        totalDeduccionesGrupo += deducciones; // Acumula las deducciones
+
+                        var totalPagoEmpleado = salarioBase + empleadoBono.Bono - deducciones;
+
+                        // Crear la entrada en la tabla intermedia NominaEmpleado
+                        var nominaEmpleado = new NominaEmpleado
+                        {
+                            IDEmpleado = empleadoBono.IDEmpleado,
+                            IDNomina = nomina.IDNomina, // Esto se asignará automáticamente al guardar la nómina
+                            SalarioBase = salarioBase,
+                            Deducciones = deducciones,
+                            Bonos = empleadoBono.Bono,
+                            TotalPago = totalPagoEmpleado // Calcula el total a pagar por empleado
+                        };
+
+                        // Agregar la relación del empleado a la nómina
+                        nomina.NominaEmpleados.Add(nominaEmpleado);
+
+                        // Acumular el total a pagar de la nómina
+                        nomina.TotalPago += totalPagoEmpleado;
+                        totalBonosGrupo += empleadoBono.Bono; // Acumula los bonos
+                    }
+                    nomina.Bonos = totalBonosGrupo;
 
                 // Guardar la nómina en la base de datos
                 await _context.Nominas.AddAsync(nomina);
-                await _context.SaveChangesAsync(); // Aquí se generará el ID de la nómina y se guardarán los empleados
+                    await _context.SaveChangesAsync(); // Aquí se generará el ID de la nómina y se guardarán los empleados
 
-                // Crear el DTO final para devolver
-                var nominaDtoResponse = new NominaDto
-                {
-                    IDNomina = nomina.IDNomina,
-                    FechaPago = nomina.FechaPago,
-                    TotalPagoGrupo = nomina.TotalPago,
-                    TotalDeduccionesGrupo = totalDeduccionesGrupo,
-                    EmpleadosDetalles = nomina.NominaEmpleados.Select(ne => new EmpleadoDetalleDto
+                    // Crear el DTO final para devolver
+                    var nominaDtoResponse = new NominaDto
                     {
-                        IDEmpleado = ne.IDEmpleado,
-                        Nombre = _context.Empleados.Find(ne.IDEmpleado)?.Nombre, // Asumiendo que tienes una propiedad Nombre en Empleado
-                        SalarioBase = ne.SalarioBase,
-                        Deducciones = ne.Deducciones,
-                        Bonos = ne.Bonos,
-                        TotalPago = ne.TotalPago
-                    }).ToList()
-                };
+                        IDNomina = nomina.IDNomina,
+                        FechaPago = nomina.FechaPago,
+                        TotalPagoGrupo = nomina.TotalPago,
+                        TotalDeduccionesGrupo = totalDeduccionesGrupo,
+                        EmpleadosDetalles = nomina.NominaEmpleados.Select(ne => new EmpleadoDetalleDto
+                        {
+                            IDEmpleado = ne.IDEmpleado,
+                            Nombre = _context.Empleados.Find(ne.IDEmpleado)?.Nombre, // Asumiendo que tienes una propiedad Nombre en Empleado
+                            SalarioBase = ne.SalarioBase,
+                            Deducciones = ne.Deducciones,
+                            Bonos = ne.Bonos,
+                            TotalPago = ne.TotalPago
+                        }).ToList()
+                    };
 
-                return nominaDtoResponse; // Retorna el DTO completo con toda la información
+                    return nominaDtoResponse; // Retorna el DTO completo con toda la información
+                }
+                catch (DbUpdateException ex)
+                {
+                    // Manejar la excepción de actualización
+                    var innerException = ex.InnerException?.Message;
+                    throw new Exception($"Error al guardar la nómina: {innerException}");
+                }
+                catch (Exception ex)
+                {
+                    // Manejar otras excepciones
+                    throw new Exception($"Ocurrió un error inesperado: {ex.Message}");
+                }
             }
-            catch (DbUpdateException ex)
-            {
-                // Manejar la excepción de actualización
-                var innerException = ex.InnerException?.Message;
-                throw new Exception($"Error al guardar la nómina: {innerException}");
-            }
-            catch (Exception ex)
-            {
-                // Manejar otras excepciones
-                throw new Exception($"Ocurrió un error inesperado: {ex.Message}");
-            }
-        }
 
 
 
@@ -145,11 +147,43 @@ namespace NominaWeb.Services
 
 
 
-        public async Task<IEnumerable<NominaDto>> GetAllNominasAsync()
+        public async Task<IEnumerable<NominaDto>> GetAllNominasAsync(int pageNumber, int pageSize)
         {
-            var nominas = await _context.Nominas.ToListAsync();
-            return _mapper.Map<IEnumerable<NominaDto>>(nominas);
+            // Obtener el total de nóminas para el cálculo de la paginación
+            var totalNominas = await _context.Nominas.CountAsync();
+
+            // Obtener las nóminas de la base de datos con paginación
+            var nominas = await _context.Nominas
+                                        .Include(n => n.NominaEmpleados)
+                                        .ThenInclude(ne => ne.Empleado) // Incluir los detalles del empleado
+                                        .OrderBy(n => n.IDNomina) // Asegurarse de tener un orden para la paginación
+                                        .Skip((pageNumber - 1) * pageSize) // Saltar los registros de las páginas anteriores
+                                        .Take(pageSize) // Tomar solo la cantidad de registros que se necesitan para la página actual
+                                        .ToListAsync();
+
+            // Mapear las nóminas a DTOs
+            return nominas.Select(nomina => new NominaDto
+            {
+                IDNomina = nomina.IDNomina,
+                FechaPago = nomina.FechaPago,
+                TotalPagoGrupo = nomina.TotalPago,
+                TotalDeduccionesGrupo = nomina.Deducciones,
+                TotalBonoGrupos = nomina.Bonos, // Retornar el total de bonos
+                EmpleadosDetalles = nomina.NominaEmpleados.Select(ne => new EmpleadoDetalleDto
+                {
+                    IDEmpleado = ne.IDEmpleado,
+                    Nombre = ne.Empleado?.Nombre + " " + ne.Empleado?.Apellido, // Concatenar el nombre y el apellido
+                    SalarioBase = ne.SalarioBase,
+                    AFP = CalculateAFP(ne.SalarioBase), // Calcular la deducción de AFP
+                    ARS = CalculateARS(ne.SalarioBase), // Calcular la deducción de ARS
+                    ISR = CalculateISR(ne.SalarioBase), // Calcular la deducción de ISR
+                    Deducciones = ne.Deducciones,
+                    Bonos = ne.Bonos,
+                    TotalPago = ne.TotalPago
+                }).ToList()
+            });
         }
+
 
         public async Task UpdateNominaAsync(int id, NominaCreateDto nominaDto)
         {
@@ -243,6 +277,36 @@ namespace NominaWeb.Services
 
             // Sumar todas las deducciones
             return afp + ars + isr + extra;
+        }
+
+        private decimal CalculateAFP(decimal salarioBase)
+        {
+            decimal afpMaximo = 102859.92m;
+            return salarioBase <= afpMaximo ? salarioBase * 0.0287m : afpMaximo * 0.0287m;
+        }
+
+        private decimal CalculateARS(decimal salarioBase)
+        {
+            decimal arsMaximo = 102859.92m;
+            return salarioBase <= arsMaximo ? salarioBase * 0.0304m : arsMaximo * 0.0304m;
+        }
+
+        private decimal CalculateISR(decimal salarioBase)
+        {
+            decimal isr = 0;
+            if (salarioBase > 72030.00m)
+            {
+                isr = 6654.63m + ((salarioBase - 72030.00m) * 0.25m);
+            }
+            else if (salarioBase > 52028.00m)
+            {
+                isr = 2616.43m + ((salarioBase - 52028.00m) * 0.20m);
+            }
+            else if (salarioBase > 34685.00m)
+            {
+                isr = (salarioBase - 34685.00m) * 0.15m;
+            }
+            return isr;
         }
     }
 }

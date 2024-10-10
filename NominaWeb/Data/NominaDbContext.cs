@@ -67,6 +67,10 @@ namespace NominaWeb.Data
                 .WithMany() // Si tienes una colección en Empleado, colócala aquí
                 .HasForeignKey(ne => ne.IDEmpleado)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<NominaEmpleado>()
+               .Property(n => n.Id)
+               .ValueGeneratedOnAdd();
         }
     }
 }

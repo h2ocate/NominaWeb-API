@@ -1,11 +1,13 @@
 ﻿
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace NominaWeb.Models
 {
     public class NominaEmpleado
     {
         [Key]
+        [DatabaseGenerated(DatabaseGeneratedOption.Identity)] // Ensures Id is auto-incremented
         public int Id { get; set; }
         public int IDNomina { get; set; }
         public Nominas Nomina { get; set; }

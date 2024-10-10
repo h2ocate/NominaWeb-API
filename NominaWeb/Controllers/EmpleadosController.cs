@@ -37,7 +37,7 @@ namespace NominaWeb.Controllers
 
         [HttpPost("GuardarEmpleado")]
         public async Task<ActionResult<EmpleadoDTO>> Create([FromBody] CreateEmpleadoDTO createEmpleadoDto)
-            {
+               {
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);

@@ -1,4 +1,5 @@
 ﻿using NominaWeb.Dto.Nomina;
+using System.Threading.Tasks;
 
 namespace NominaWeb.Interfaces
 {
@@ -6,7 +7,7 @@ namespace NominaWeb.Interfaces
     {
         Task<NominaDto> AddNominaAsync(NominaCreateDto nominaDto);
         Task<NominaDto> GetNominaByIdAsync(int id);
-        Task<IEnumerable<NominaDto>> GetAllNominasAsync();
+        Task<IEnumerable<NominaDto>> GetAllNominasAsync(int pageNumber, int pageSize);
         Task UpdateNominaAsync(int id, NominaCreateDto nominaDto);
         Task DeactivateNominaAsync(int id);
     }

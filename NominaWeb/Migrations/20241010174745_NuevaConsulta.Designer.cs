@@ -12,8 +12,8 @@ using NominaWeb.Data;
 namespace NominaWeb.Migrations
 {
     [DbContext(typeof(NominaDbContext))]
-    [Migration("20241009220021_InitialCreate")]
-    partial class InitialCreate
+    [Migration("20241010174745_NuevaConsulta")]
+    partial class NuevaConsulta
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -98,7 +98,10 @@ namespace NominaWeb.Migrations
                         .HasColumnType("int");
 
                     b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<decimal>("SalarioBase")
                         .HasColumnType("decimal(18,2)");

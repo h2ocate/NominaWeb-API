@@ -15,7 +15,7 @@ namespace NominaWeb.Controllers
             _nominaService = nominaService;
         }
 
-        [HttpPost]
+        [HttpPost("GuardarNomina")]
         public async Task<IActionResult> CreateNomina([FromBody] NominaCreateDto nominaDto)
         {
             // Verifica que la lista de empleados no esté vacía
@@ -49,13 +49,13 @@ namespace NominaWeb.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetAllNominas()
+        public async Task<IActionResult> GetNominas(int pageNumber = 1, int pageSize = 2)
         {
-            var nominas = await _nominaService.GetAllNominasAsync();
+            var nominas = await _nominaService.GetAllNominasAsync(pageNumber, pageSize);
             return Ok(nominas);
         }
 
-        [HttpPut("{id}")]
+        [HttpPut("Actualizar/{id}")]
         public async Task<IActionResult> UpdateNomina(int id, [FromBody] NominaCreateDto nominaDto)
         {
             await _nominaService.UpdateNominaAsync(id, nominaDto);
