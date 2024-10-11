@@ -1,4 +1,5 @@
-﻿using NominaWeb.Dto.Nomina;
+﻿using NominaWeb.Dto.Empleado;
+using NominaWeb.Dto.Nomina;
 using System.Threading.Tasks;
 
 namespace NominaWeb.Interfaces
@@ -11,5 +12,6 @@ namespace NominaWeb.Interfaces
         Task UpdateNominaAsync(int id, NominaCreateDto nominaDto);
         Task DeactivateNominaAsync(int id);
         Task<NominaResumenDTO> GetNominaResumenAsync();
-    }
+        Task<NominaDto> AddEmpleadoToNominaAsync(int idNomina, NominaCreateDto nominaCreateDto);
+    }   
 }

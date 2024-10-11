@@ -19,95 +19,91 @@ namespace NominaWeb.Services
             _mapper = mapper;
         }
 
-            public async Task<NominaDto> AddNominaAsync(NominaCreateDto nominaDto)
+        public async Task<NominaDto> AddNominaAsync(NominaCreateDto nominaDto)
+        {
+            try
             {
-                try
+                // Ajustar la fecha de pago si cae en fin de semana
+                DateTime fechaPago = AdjustPaymentDate(nominaDto.FechaPago);
+
+                // Crear una nueva nómina
+                var nomina = new Nominas
                 {
-                    // Primero crear la nómina con los datos correctos
-                    var nomina = new Nominas
+                    FechaPago = fechaPago,
+                    Deducciones = nominaDto.DeduccionesExtras,
+                    TotalPago = 0,
+                    Bonos = 0,
+                    NominaEmpleados = new List<NominaEmpleado>()
+                };
+
+                // Inicializar totales
+                decimal totalDeduccionesGrupo = 0;
+                decimal totalBonosGrupo = 0;
+
+                // Agregar empleados a la nómina al momento de crearla
+                foreach (var empleadoBono in nominaDto.IDEmpleados)
+                {
+                    var empleado = await _context.Empleados.FindAsync(empleadoBono.IDEmpleado);
+                    if (empleado == null)
                     {
-                        FechaPago = nominaDto.FechaPago,
-                        Deducciones = nominaDto.DeduccionesExtras, // Asigna las deducciones extras
-                        TotalPago = 0, // Inicializa el total en 0 para sumar luego
-                        Bonos = 0,
-                        NominaEmpleados = new List<NominaEmpleado>() // Inicializa la lista vacía
+                        throw new Exception($"Empleado con ID {empleadoBono.IDEmpleado} no encontrado.");
+                    }
+
+                    var salarioBase = empleado.Salario;
+                    decimal deducciones = CalculateDeductions(salarioBase, nominaDto.DeduccionesExtras);
+                    totalDeduccionesGrupo += deducciones;
+
+                    var totalPagoEmpleado = salarioBase + empleadoBono.Bono - deducciones;
+
+                    var nominaEmpleado = new NominaEmpleado
+                    {
+                        IDEmpleado = empleadoBono.IDEmpleado,
+                        IDNomina = nomina.IDNomina,
+                        SalarioBase = salarioBase,
+                        Deducciones = deducciones,
+                        Bonos = empleadoBono.Bono,
+                        TotalPago = totalPagoEmpleado
                     };
 
-                    // Inicializar totales
-                    decimal totalDeduccionesGrupo = 0;
-                    decimal totalBonosGrupo = 0;
+                    nomina.NominaEmpleados.Add(nominaEmpleado);
+                    nomina.TotalPago += totalPagoEmpleado;
+                    totalBonosGrupo += empleadoBono.Bono;
+                }
 
-                    // Calcular el total a pagar, deducciones y otros detalles para cada empleado
-                    foreach (var empleadoBono in nominaDto.IDEmpleados)
-                    {
-                        var empleado = await _context.Empleados.FindAsync(empleadoBono.IDEmpleado);
-                        if (empleado == null)
-                        {
-                            throw new Exception($"Empleado con ID {empleadoBono.IDEmpleado} no encontrado.");
-                        }
-
-                        var salarioBase = empleado.Salario; // Toma el salario del empleado
-                        decimal deducciones = CalculateDeductions(salarioBase, nominaDto.DeduccionesExtras);
-                        totalDeduccionesGrupo += deducciones; // Acumula las deducciones
-
-                        var totalPagoEmpleado = salarioBase + empleadoBono.Bono - deducciones;
-
-                        // Crear la entrada en la tabla intermedia NominaEmpleado
-                        var nominaEmpleado = new NominaEmpleado
-                        {
-                            IDEmpleado = empleadoBono.IDEmpleado,
-                            IDNomina = nomina.IDNomina, // Esto se asignará automáticamente al guardar la nómina
-                            SalarioBase = salarioBase,
-                            Deducciones = deducciones,
-                            Bonos = empleadoBono.Bono,
-                            TotalPago = totalPagoEmpleado // Calcula el total a pagar por empleado
-                        };
-
-                        // Agregar la relación del empleado a la nómina
-                        nomina.NominaEmpleados.Add(nominaEmpleado);
-
-                        // Acumular el total a pagar de la nómina
-                        nomina.TotalPago += totalPagoEmpleado;
-                        totalBonosGrupo += empleadoBono.Bono; // Acumula los bonos
-                    }
-                    nomina.Bonos = totalBonosGrupo;
+                nomina.Bonos = totalBonosGrupo;
 
                 // Guardar la nómina en la base de datos
                 await _context.Nominas.AddAsync(nomina);
-                    await _context.SaveChangesAsync(); // Aquí se generará el ID de la nómina y se guardarán los empleados
+                await _context.SaveChangesAsync();
 
-                    // Crear el DTO final para devolver
-                    var nominaDtoResponse = new NominaDto
+                // Retornar el DTO con la información de la nómina creada
+                return new NominaDto
+                {
+                    IDNomina = nomina.IDNomina,
+                    FechaPago = nomina.FechaPago,
+                    TotalPagoGrupo = nomina.TotalPago,
+                    TotalDeduccionesGrupo = totalDeduccionesGrupo,
+                    EmpleadosDetalles = nomina.NominaEmpleados.Select(ne => new EmpleadoDetalleDto
                     {
-                        IDNomina = nomina.IDNomina,
-                        FechaPago = nomina.FechaPago,
-                        TotalPagoGrupo = nomina.TotalPago,
-                        TotalDeduccionesGrupo = totalDeduccionesGrupo,
-                        EmpleadosDetalles = nomina.NominaEmpleados.Select(ne => new EmpleadoDetalleDto
-                        {
-                            IDEmpleado = ne.IDEmpleado,
-                            Nombre = _context.Empleados.Find(ne.IDEmpleado)?.Nombre, // Asumiendo que tienes una propiedad Nombre en Empleado
-                            SalarioBase = ne.SalarioBase,
-                            Deducciones = ne.Deducciones,
-                            Bonos = ne.Bonos,
-                            TotalPago = ne.TotalPago
-                        }).ToList()
-                    };
-
-                    return nominaDtoResponse; // Retorna el DTO completo con toda la información
-                }
-                catch (DbUpdateException ex)
-                {
-                    // Manejar la excepción de actualización
-                    var innerException = ex.InnerException?.Message;
-                    throw new Exception($"Error al guardar la nómina: {innerException}");
-                }
-                catch (Exception ex)
-                {
-                    // Manejar otras excepciones
-                    throw new Exception($"Ocurrió un error inesperado: {ex.Message}");
-                }
+                        IDEmpleado = ne.IDEmpleado,
+                        Nombre = _context.Empleados.Find(ne.IDEmpleado)?.Nombre,
+                        SalarioBase = ne.SalarioBase,
+                        Deducciones = ne.Deducciones,
+                        Bonos = ne.Bonos,
+                        TotalPago = ne.TotalPago
+                    }).ToList()
+                };
             }
+            catch (DbUpdateException ex)
+            {
+                var innerException = ex.InnerException?.Message;
+                throw new Exception($"Error al guardar la nómina: {innerException}");
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Ocurrió un error inesperado: {ex.Message}");
+            }
+        }
 
 
 
@@ -147,42 +143,42 @@ namespace NominaWeb.Services
 
 
 
-        public async Task<IEnumerable<NominaDto>> GetAllNominasAsync(int pageNumber, int pageSize)
-        {
-            // Obtener el total de nóminas para el cálculo de la paginación
-            var totalNominas = await _context.Nominas.CountAsync();
-
-            // Obtener las nóminas de la base de datos con paginación
-            var nominas = await _context.Nominas
-                                        .Include(n => n.NominaEmpleados)
-                                        .ThenInclude(ne => ne.Empleado) // Incluir los detalles del empleado
-                                        .OrderBy(n => n.IDNomina) // Asegurarse de tener un orden para la paginación
-                                        .Skip((pageNumber - 1) * pageSize) // Saltar los registros de las páginas anteriores
-                                        .Take(pageSize) // Tomar solo la cantidad de registros que se necesitan para la página actual
-                                        .ToListAsync();
-
-            // Mapear las nóminas a DTOs
-            return nominas.Select(nomina => new NominaDto
+            public async Task<IEnumerable<NominaDto>> GetAllNominasAsync(int pageNumber, int pageSize)
             {
-                IDNomina = nomina.IDNomina,
-                FechaPago = nomina.FechaPago,
-                TotalPagoGrupo = nomina.TotalPago,
-                TotalDeduccionesGrupo = nomina.Deducciones,
-                TotalBonoGrupos = nomina.Bonos, // Retornar el total de bonos
-                EmpleadosDetalles = nomina.NominaEmpleados.Select(ne => new EmpleadoDetalleDto
+                // Obtener el total de nóminas para el cálculo de la paginación
+                var totalNominas = await _context.Nominas.CountAsync();
+
+                // Obtener las nóminas de la base de datos con paginación
+                var nominas = await _context.Nominas
+                                            .Include(n => n.NominaEmpleados)
+                                            .ThenInclude(ne => ne.Empleado) // Incluir los detalles del empleado
+                                            .OrderBy(n => n.IDNomina) // Asegurarse de tener un orden para la paginación
+                                            .Skip((pageNumber - 1) * pageSize) // Saltar los registros de las páginas anteriores
+                                            .Take(pageSize) // Tomar solo la cantidad de registros que se necesitan para la página actual
+                                            .ToListAsync();
+
+                // Mapear las nóminas a DTOs
+                return nominas.Select(nomina => new NominaDto
                 {
-                    IDEmpleado = ne.IDEmpleado,
-                    Nombre = ne.Empleado?.Nombre + " " + ne.Empleado?.Apellido, // Concatenar el nombre y el apellido
-                    SalarioBase = ne.SalarioBase,
-                    AFP = CalculateAFP(ne.SalarioBase), // Calcular la deducción de AFP
-                    ARS = CalculateARS(ne.SalarioBase), // Calcular la deducción de ARS
-                    ISR = CalculateISR(ne.SalarioBase), // Calcular la deducción de ISR
-                    Deducciones = ne.Deducciones,
-                    Bonos = ne.Bonos,
-                    TotalPago = ne.TotalPago
-                }).ToList()
-            });
-        }
+                    IDNomina = nomina.IDNomina,
+                    FechaPago = nomina.FechaPago,
+                    TotalPagoGrupo = nomina.TotalPago,
+                    TotalDeduccionesGrupo = nomina.Deducciones,
+                    TotalBonoGrupos = nomina.Bonos, // Retornar el total de bonos
+                    EmpleadosDetalles = nomina.NominaEmpleados.Select(ne => new EmpleadoDetalleDto
+                    {
+                        IDEmpleado = ne.IDEmpleado,
+                        Nombre = ne.Empleado?.Nombre + " " + ne.Empleado?.Apellido, // Concatenar el nombre y el apellido
+                        SalarioBase = ne.SalarioBase,
+                        AFP = CalculateAFP(ne.SalarioBase), // Calcular la deducción de AFP
+                        ARS = CalculateARS(ne.SalarioBase), // Calcular la deducción de ARS
+                        ISR = CalculateISR(ne.SalarioBase), // Calcular la deducción de ISR
+                        Deducciones = ne.Deducciones,
+                        Bonos = ne.Bonos,
+                        TotalPago = ne.TotalPago
+                    }).ToList()
+                });
+            }
 
 
         public async Task UpdateNominaAsync(int id, NominaCreateDto nominaDto)
@@ -321,6 +317,117 @@ namespace NominaWeb.Services
                 TotalNominas = totalNominas,
                 TotalPagar = totalPagar
             };
+        }
+
+
+        public async Task<NominaDto> AddEmpleadoToNominaAsync(int idNomina, NominaCreateDto nominaCreateDto)
+        {
+            try
+            {
+                // Buscar la nómina por su ID
+                var nomina = await _context.Nominas
+                    .Include(n => n.NominaEmpleados)
+                    .FirstOrDefaultAsync(n => n.IDNomina == idNomina);
+
+                if (nomina == null)
+                {
+                    throw new Exception($"Nómina con ID {idNomina} no encontrada.");
+                }
+
+                // Actualizar la fecha de pago si se proporciona una nueva
+                if (nominaCreateDto.FechaPago != default(DateTime))
+                {
+                    nomina.FechaPago = AdjustPaymentDate(nominaCreateDto.FechaPago);
+                }
+
+                foreach (var empleadoBonoDto in nominaCreateDto.IDEmpleados)
+                {
+                    // Verificar si el empleado ya está en la nómina
+                    if (nomina.NominaEmpleados.Any(ne => ne.IDEmpleado == empleadoBonoDto.IDEmpleado))
+                    {
+                        throw new Exception($"El empleado con ID {empleadoBonoDto.IDEmpleado} ya está en la nómina.");
+                    }
+
+                    // Buscar el empleado en la base de datos
+                    var empleado = await _context.Empleados.FindAsync(empleadoBonoDto.IDEmpleado);
+                    if (empleado == null)
+                    {
+                        throw new Exception($"Empleado con ID {empleadoBonoDto.IDEmpleado} no encontrado.");
+                    }
+
+                    // Calcular salario y deducciones
+                    var salarioBase = empleado.Salario;
+                    nomina.Deducciones = nominaCreateDto.DeduccionesExtras;
+                    decimal deducciones = CalculateDeductions(salarioBase, nomina.Deducciones);
+                    var totalPagoEmpleado = salarioBase + empleadoBonoDto.Bono - deducciones;
+
+                    // Crear la entrada en la tabla intermedia NominaEmpleado
+                    var nominaEmpleado = new NominaEmpleado
+                    {
+                        IDEmpleado = empleadoBonoDto.IDEmpleado,
+                        IDNomina = nomina.IDNomina,
+                        SalarioBase = salarioBase,
+                        Deducciones = deducciones,
+                        Bonos = empleadoBonoDto.Bono,
+                        TotalPago = totalPagoEmpleado
+                    };
+
+                    // Agregar el empleado a la nómina
+                    nomina.NominaEmpleados.Add(nominaEmpleado);
+                    nomina.TotalPago += totalPagoEmpleado;
+                    nomina.Bonos += empleadoBonoDto.Bono;
+                }
+
+                // Guardar los cambios en la base de datos
+                await _context.SaveChangesAsync();
+
+                // Devolver el DTO actualizado con los detalles de la nómina
+                return new NominaDto
+                {
+                    IDNomina = nomina.IDNomina,
+                    FechaPago = nomina.FechaPago,
+                    TotalPagoGrupo = nomina.TotalPago,
+                    TotalDeduccionesGrupo = nomina.Deducciones,
+                    EmpleadosDetalles = nomina.NominaEmpleados.Select(ne => new EmpleadoDetalleDto
+                    {
+                        IDEmpleado = ne.IDEmpleado,
+                        Nombre = ne.Empleado?.Nombre + " " + ne.Empleado?.Apellido, // Concatenar el nombre y el apellido
+                        SalarioBase = ne.SalarioBase,
+                        Deducciones = ne.Deducciones,
+                        AFP = CalculateAFP(ne.SalarioBase), // Calcular la deducción de AFP
+                        ARS = CalculateARS(ne.SalarioBase), // Calcular la deducción de ARS
+                        ISR = CalculateISR(ne.SalarioBase), // Calcular la deducción de ISR
+                        Bonos = ne.Bonos,
+                        TotalPago = ne.TotalPago
+                    }).ToList()
+                };
+            }
+            catch (DbUpdateException ex)
+            {
+                var innerException = ex.InnerException?.Message;
+                throw new Exception($"Error al actualizar la nómina: {innerException}");
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Ocurrió un error inesperado: {ex.Message}");
+            }
+        }
+
+
+
+        private DateTime AdjustPaymentDate(DateTime fechaPago)
+        {
+            // Si la fecha de pago es sábado (DayOfWeek = 6), se ajusta al viernes
+            if (fechaPago.DayOfWeek == DayOfWeek.Saturday)
+            {
+                return fechaPago.AddDays(-1);
+            }
+            // Si la fecha de pago es domingo (DayOfWeek = 0), se ajusta al viernes
+            else if (fechaPago.DayOfWeek == DayOfWeek.Sunday)
+            {
+                return fechaPago.AddDays(-2);
+            }
+            return fechaPago; // Si no cae en fin de semana, se deja la misma fecha
         }
     }
 }

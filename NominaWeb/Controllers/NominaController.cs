@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using NominaWeb.Dto.Empleado;
 using NominaWeb.Dto.Nomina;
 using NominaWeb.Interfaces;
 
@@ -83,5 +84,24 @@ namespace NominaWeb.Controllers
                 return StatusCode(500, "Error al obtener el resumen de nóminas");
             }
         }
+
+        [HttpPost("{idNomina}/empleados")]
+        public async Task<ActionResult<NominaDto>> AddEmpleadoToNomina(int idNomina, [FromBody] NominaCreateDto nominaCreateDto)
+        {
+            try
+            {
+                // Llama al servicio para agregar empleados a la nómina
+                var nominaActualizada = await _nominaService.AddEmpleadoToNominaAsync(idNomina, nominaCreateDto);
+
+                // Retorna el resultado con un código 200 OK
+                return Ok(nominaActualizada);
+            }
+            catch (Exception ex)
+            {
+                // Manejo de errores
+                return BadRequest(new { Message = ex.Message });
+            }
+        }
+
     }
 }
