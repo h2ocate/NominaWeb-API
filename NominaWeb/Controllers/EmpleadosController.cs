@@ -17,11 +17,19 @@ namespace NominaWeb.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<EmpleadoDTO>>> GetAll()
+        public async Task<ActionResult> GetAll([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
+        {
+            var result = await _empleadoService.GetEmpleadosPaginatedAsync(pageNumber, pageSize);
+            return Ok(result);
+        }
+
+        [HttpGet("GetEmpleados")]
+        public async Task<ActionResult<IEnumerable<EmpleadoDTO>>> GetEmpleados()
         {
             var empleados = await _empleadoService.GetAllEmpleadosAsync();
             return Ok(empleados);
         }
+
 
         [HttpGet("{id}")]
         public async Task<ActionResult<EmpleadoDTO>> GetById(int id)

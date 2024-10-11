@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace NominaWeb.Migrations
 {
     /// <inheritdoc />
-    public partial class NuevaConsulta : Migration
+    public partial class SolvedProblemWithIdNominaEmpleado : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)

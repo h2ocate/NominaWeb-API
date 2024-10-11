@@ -68,5 +68,20 @@ namespace NominaWeb.Controllers
             await _nominaService.DeactivateNominaAsync(id);
             return NoContent();
         }
+
+        [HttpGet("resumen")]
+        public async Task<ActionResult<NominaResumenDTO>> GetNominaResumen()
+        {
+            try
+            {
+                var resumen = await _nominaService.GetNominaResumenAsync();
+                return Ok(resumen);
+            }
+            catch (Exception ex)
+            {
+                // Manejo de errores
+                return StatusCode(500, "Error al obtener el resumen de nóminas");
+            }
+        }
     }
 }

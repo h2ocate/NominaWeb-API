@@ -12,8 +12,8 @@ using NominaWeb.Data;
 namespace NominaWeb.Migrations
 {
     [DbContext(typeof(NominaDbContext))]
-    [Migration("20241010174745_NuevaConsulta")]
-    partial class NuevaConsulta
+    [Migration("20241011013741_SolvedProblemWithIdNominaEmpleado")]
+    partial class SolvedProblemWithIdNominaEmpleado
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)

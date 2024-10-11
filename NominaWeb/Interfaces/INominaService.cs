@@ -10,5 +10,6 @@ namespace NominaWeb.Interfaces
         Task<IEnumerable<NominaDto>> GetAllNominasAsync(int pageNumber, int pageSize);
         Task UpdateNominaAsync(int id, NominaCreateDto nominaDto);
         Task DeactivateNominaAsync(int id);
+        Task<NominaResumenDTO> GetNominaResumenAsync();
     }
 }

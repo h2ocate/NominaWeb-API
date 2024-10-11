@@ -25,4 +25,11 @@ namespace NominaWeb.Dto.Nomina
         public decimal Bonos { get; set; }
         public decimal TotalPago { get; set; }
     }
+
+    public class NominaResumenDTO
+    {
+        public int TotalNominas { get; set; }
+        public decimal TotalPagar { get; set; }
+    }
+
 }

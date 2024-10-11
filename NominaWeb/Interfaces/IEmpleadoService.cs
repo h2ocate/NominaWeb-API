@@ -5,6 +5,7 @@ namespace NominaWeb.Interfaces
 {
     public interface IEmpleadoService
     {
+        Task<object> GetEmpleadosPaginatedAsync(int pageNumber, int pageSize);
         Task<IEnumerable<EmpleadoDTO>> GetAllEmpleadosAsync();
         Task<EmpleadoDTO> GetEmpleadoByIdAsync(int id);
         Task<EmpleadoDTO> CreateEmpleadoAsync(CreateEmpleadoDTO empleadoDto);

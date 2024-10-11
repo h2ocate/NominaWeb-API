@@ -18,6 +18,28 @@ namespace NominaWeb.Services
             _mapper = mapper;
         }
 
+        public async Task<object> GetEmpleadosPaginatedAsync(int pageNumber, int pageSize)
+        {
+            var query = _context.Empleados
+                .Where(e => e.Estado == true); // Solo empleados activos
+
+            var totalRecords = await query.CountAsync();
+
+            var empleados = await query
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            var empleadosDTO = _mapper.Map<IEnumerable<EmpleadoDTO>>(empleados);
+
+            return new
+            {
+                empleados = empleadosDTO,
+                totalRecords = totalRecords
+            };
+        }
+
+
         public async Task<IEnumerable<EmpleadoDTO>> GetAllEmpleadosAsync()
         {
             var empleados = await _context.Empleados

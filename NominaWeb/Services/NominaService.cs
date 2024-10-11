@@ -308,5 +308,19 @@ namespace NominaWeb.Services
             }
             return isr;
         }
+
+        public async Task<NominaResumenDTO> GetNominaResumenAsync()
+        {
+            var nominas = await _context.Nominas.ToListAsync();
+
+            var totalNominas = nominas.Count;
+            var totalPagar = nominas.Sum(n => n.TotalPago);
+
+            return new NominaResumenDTO
+            {
+                TotalNominas = totalNominas,
+                TotalPagar = totalPagar
+            };
+        }
     }
 }
