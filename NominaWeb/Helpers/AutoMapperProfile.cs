@@ -1,7 +1,9 @@
 ﻿using AutoMapper;
 using NominaWeb.Dto.Empleado;
 using NominaWeb.Dto.Nomina;
+using NominaWeb.Dto.Usuario;
 using NominaWeb.Models;
+using NominaWeb.Models.Usuario;
 
 namespace NominaWeb.Helpers
 {
@@ -22,6 +24,9 @@ namespace NominaWeb.Helpers
             CreateMap<Nominas, NominaDto>();
 
             CreateMap<NominaEmpleado, EmpleadoNominaDto>().ReverseMap();
+
+            CreateMap<UserLoginDTO, User>(); // Mapea UserLoginDTO a tu modelo User
+
         }
     }
 }

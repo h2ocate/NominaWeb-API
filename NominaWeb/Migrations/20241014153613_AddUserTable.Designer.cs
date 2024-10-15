@@ -12,8 +12,8 @@ using NominaWeb.Data;
 namespace NominaWeb.Migrations
 {
     [DbContext(typeof(NominaDbContext))]
-    [Migration("20241011013741_SolvedProblemWithIdNominaEmpleado")]
-    partial class SolvedProblemWithIdNominaEmpleado
+    [Migration("20241014153613_AddUserTable")]
+    partial class AddUserTable
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -144,6 +144,40 @@ namespace NominaWeb.Migrations
                     b.HasKey("IDNomina");
 
                     b.ToTable("Nominas");
+                });
+
+            modelBuilder.Entity("NominaWeb.Models.Usuario.User", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("PasswordHash")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("Role")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Username")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Users");
                 });
 
             modelBuilder.Entity("NominaWeb.Models.Empleado", b =>

@@ -1,7 +1,11 @@
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using NominaWeb.Data;
 using NominaWeb.Interfaces;
 using NominaWeb.Services;
+using NominaWeb.Services.Usuario;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -18,6 +22,26 @@ builder.Services.AddDbContext<NominaDbContext>(options =>
 // Add custom services
 builder.Services.AddScoped<IEmpleadoService, EmpleadoService>();
 builder.Services.AddScoped<INominaService, NominaService>();
+builder.Services.AddScoped<IAuthService, AuthService>();
+
+// Configure JWT Authentication
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+}).AddJwtBearer(options =>
+{
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+        ValidIssuer = builder.Configuration["Jwt:Issuer"],
+        ValidAudience = builder.Configuration["Jwt:Audience"],
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]))
+    };
+});
 
 // Add CORS
 builder.Services.AddCors(options =>
@@ -46,9 +70,11 @@ if (app.Environment.IsDevelopment())
 // Enable CORS
 app.UseCors("AllowAllOrigins");
 
-app.UseHttpsRedirection();
-
+// Enable Authentication
+app.UseAuthentication(); // Mueve esta línea antes de UseAuthorization
 app.UseAuthorization();
+
+app.UseHttpsRedirection();
 
 app.MapControllers();
 

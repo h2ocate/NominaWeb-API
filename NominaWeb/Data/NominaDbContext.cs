@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using NominaWeb.Models;
+using NominaWeb.Models.Usuario;
 
 namespace NominaWeb.Data
 {
@@ -11,6 +12,7 @@ namespace NominaWeb.Data
         public DbSet<Empleado> Empleados { get; set; }
         public DbSet<Cargo> Cargos { get; set; }
         public DbSet<Nominas> Nominas { get; set; }
+        public DbSet<User> Users { get; set; }
     public DbSet<NominaEmpleado> NominaEmpleados { get; set; } // Aquí está
 
 
